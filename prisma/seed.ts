@@ -55,7 +55,7 @@ async function main() {
       name: "Gym Owner",
       email: "owner@gmail.com",
       password: hashedPassword,
-      role: "GYM_OWNER",
+      role: "ADMIN",
       city: "Noida",
     },
   });

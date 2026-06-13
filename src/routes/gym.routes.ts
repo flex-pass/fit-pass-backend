@@ -17,7 +17,7 @@ router.get("/:id", getGymById);
 router.get("/:id/credit-cost", getCreditCost);
 
 // Protected routes (owner / admin)
-router.post("/", authenticate, authorize(["GYM_OWNER", "ADMIN", "SUPERADMIN"]), createGym);
+router.post("/", authenticate, authorize(["ADMIN", "SUPERADMIN"]), createGym);
 router.put("/:id", authenticate, updateGym);
 router.patch("/:id/kill-switch", authenticate, toggleKillSwitch);
 

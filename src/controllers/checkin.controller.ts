@@ -139,14 +139,14 @@ export const validateQR = async (req: AuthenticatedRequest, res: Response): Prom
       return;
     }
 
-    // If scanner is a GYM_OWNER, verify which gym they own
+    // If scanner is an ADMIN, verify which gym they own/represent
     let scannerGymId: string | null = null;
-    if (scannerUserRole === "GYM_OWNER") {
+    if (scannerUserRole === "ADMIN") {
       const ownedGym = await prisma.gym.findFirst({
         where: { owner_user_id: scannerUserId },
       });
       if (!ownedGym) {
-        res.status(403).json({ success: false, message: "Owner is not associated with any gym" });
+        res.status(403).json({ success: false, message: "Admin is not associated with any gym" });
         return;
       }
       scannerGymId = ownedGym.id;

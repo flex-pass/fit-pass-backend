@@ -28,10 +28,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Validate role if provided
-    let userRole: "USER" | "GYM_OWNER" | "ADMIN" | "SUPERADMIN" = "USER";
+    let userRole: "USER" | "ADMIN" | "SUPERADMIN" = "USER";
     if (role) {
       const upperRole = role.toUpperCase();
-      if (["USER", "GYM_OWNER", "ADMIN", "SUPERADMIN"].includes(upperRole)) {
+      if (["USER", "ADMIN", "SUPERADMIN"].includes(upperRole)) {
         userRole = upperRole as any;
       } else {
         res.status(400).json({
