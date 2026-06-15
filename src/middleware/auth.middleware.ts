@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/auth";
 import { prisma } from "../lib/prisma";
+import { blacklistService } from "../services/blacklist.service";
 
 export interface AuthenticatedRequest extends Request {
+  token?: string; // Add token field to req
   user?: {
     id: string;
     email: string;
@@ -34,6 +36,15 @@ export const authenticate = async (
       return;
     }
 
+    // Check token blacklist
+    if (blacklistService.isTokenBlacklisted(token)) {
+      res.status(401).json({
+        success: false,
+        message: "Token is invalidated. Please log in again.",
+      });
+      return;
+    }
+
     const decoded = verifyToken(token);
     if (!decoded) {
       res.status(401).json({
@@ -57,6 +68,7 @@ export const authenticate = async (
       return;
     }
 
+    req.token = token;
     req.user = {
       id: decoded.id,
       email: decoded.email,

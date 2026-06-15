@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { hashPassword, comparePassword, generateToken } from "../utils/auth";
+import jwt from "jsonwebtoken";
+import { blacklistService } from "../services/blacklist.service";
+import { AuthenticatedRequest } from "../middleware/auth.middleware";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -150,6 +153,75 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       success: false,
       message: error.message || "Internal server error during login",
+    });
+  }
+};
+
+export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone_number: true,
+        city: true,
+        credits_balance: true,
+        plan_type: true,
+        plan_expiry_date: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch profile",
+    });
+  }
+};
+
+export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const token = req.token;
+    if (!token) {
+      res.status(400).json({ success: false, message: "Token is required for logout" });
+      return;
+    }
+
+    // Decode token to find expiration
+    const decoded = jwt.decode(token) as any;
+    const expiresAt = decoded?.exp || Math.floor(Date.now() / 1000) + 7 * 24 * 3600; // fallback 7d
+
+    // Add to blacklist
+    blacklistService.blacklistToken(token, expiresAt);
+
+    res.status(200).json({
+      success: true,
+      message: "Logout successful and token invalidated",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Logout failed",
     });
   }
 };

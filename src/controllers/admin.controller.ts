@@ -76,3 +76,137 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
     });
   }
 };
+
+export const getAllUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: "USER" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone_number: true,
+        city: true,
+        credits_balance: true,
+        plan_type: true,
+        plan_expiry_date: true,
+        is_active: true,
+        created_at: true,
+      },
+      orderBy: { created_at: "desc" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: users,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch users",
+    });
+  }
+};
+
+export const getUserById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone_number: true,
+        city: true,
+        credits_balance: true,
+        plan_type: true,
+        plan_expiry_date: true,
+        is_active: true,
+        created_at: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch user detail",
+    });
+  }
+};
+
+export const getAllAdmins = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone_number: true,
+        city: true,
+        credits_balance: true,
+        is_active: true,
+        created_at: true,
+      },
+      orderBy: { created_at: "desc" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: admins,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch admins",
+    });
+  }
+};
+
+export const getAdminById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const admin = await prisma.user.findFirst({
+      where: { id, role: "ADMIN" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone_number: true,
+        city: true,
+        credits_balance: true,
+        is_active: true,
+        created_at: true,
+      },
+    });
+
+    if (!admin) {
+      res.status(404).json({ success: false, message: "Admin not found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: admin,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch admin detail",
+    });
+  }
+};
