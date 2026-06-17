@@ -9,101 +9,184 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  USER
-  ADMIN
-  SUPERADMIN
-}
-
-enum PlanType {
-  BASIC
-  STANDARD
-  PREMIUM
-  CORPORATE_BASIC
-  NONE
-}
-
-enum CheckInStatus {
-  SUCCESS
-  FAILED
-  FRAUD
-}
-
 model User {
-  id               String              @id @default(uuid())
-  phone_number     String?             @unique
-  email            String              @unique
-  password         String
-  name             String
-  city             String?
-  credits_balance  Int                 @default(0)
-  plan_type        PlanType            @default(NONE)
-  plan_expiry_date DateTime?
-  role             Role                @default(USER)
-  is_active        Boolean             @default(true)
-  corporate_id     String?
-  corporate        Corporate?          @relation(fields: [corporate_id], references: [id])
-  gyms             Gym[]
-  check_ins        CheckIn[]
-  transactions     CreditTransaction[]
-  created_at       DateTime            @default(now())
-  updated_at       DateTime            @updatedAt
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String
+  phoneNumber     String?  @unique
+  name            String?
+  city            String?
+  role            Role     @default(USER)
+  creditsBalance  Int      @default(0)
+  planType        PlanType @default(NONE)
+  planExpiryDate  DateTime?
+  corporateId     String?
+  corporate       Corporate? @relation(fields: [corporateId], references: [id])
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  checkins        Checkin[]
+  transactions    CreditTransaction[]
+  subscription    Subscription?
+  ownedGyms       Gym[]    @relation("GymOwner")
+
+  @@index([phoneNumber])
+  @@index([corporateId])
 }
 
 model Gym {
-  id                   String     @id @default(uuid())
-  name                 String
-  owner_user_id        String
-  owner                User       @relation(fields: [owner_user_id], references: [id])
-  address              String
-  latitude             Decimal    @db.Decimal(10, 8)
-  longitude            Decimal    @db.Decimal(11, 8)
-  tier                 Int        // 1 = Premium, 2 = Mid, 3 = Budget, 4 = Boutique Studio
-  peak_credit_cost     Int
-  offpeak_credit_cost  Int
-  peak_start_morning   String     // e.g. "06:00"
-  peak_end_morning     String     // e.g. "09:00"
-  peak_start_evening   String     // e.g. "18:00"
-  peak_end_evening     String     // e.g. "21:00"
-  payout_per_credit    Decimal    @db.Decimal(10, 2)
-  kill_switch          Boolean    @default(false)
-  is_approved          Boolean    @default(false)
-  monthly_guarantee    Decimal    @default(0) @db.Decimal(10, 2)
-  check_ins            CheckIn[]
-  created_at           DateTime   @default(now())
-  updated_at           DateTime   @updatedAt
+  id                  String   @id @default(uuid())
+  name                String
+  ownerId             String
+  owner               User     @relation("GymOwner", fields: [ownerId], references: [id])
+  address             String
+  latitude            Decimal  @db.Decimal(10, 8)
+  longitude           Decimal  @db.Decimal(11, 8)
+  tier                Int      // 1 = premium, 2 = mid, 3 = budget
+  peakCreditCost      Int
+  offpeakCreditCost   Int
+  peakStartMorning    String   // "06:00"
+  peakEndMorning      String   // "09:00"
+  peakStartEvening    String   // "18:00"
+  peakEndEvening      String   // "21:00"
+  payoutPerCredit     Decimal  @db.Decimal(10, 2)
+  killSwitch          Boolean  @default(false)
+  isApproved          Boolean  @default(false)
+  monthlyGuarantee    Decimal? @db.Decimal(10, 2)
+  createdAt           DateTime @default(now())
+  checkins            Checkin[]
+  payouts             Payout[]
+
+  @@index([latitude, longitude])
+  @@index([isApproved, killSwitch])
 }
 
-model CheckIn {
-  id                 String        @id @default(uuid())
-  user_id            String
-  user               User          @relation(fields: [user_id], references: [id])
-  gym_id             String
-  gym                Gym           @relation(fields: [gym_id], references: [id])
-  checked_in_at      DateTime      @default(now())
-  credits_used       Int
-  gym_payout_amount  Decimal       @db.Decimal(10, 2)
-  user_lat           Decimal       @db.Decimal(10, 8)
-  user_lng           Decimal       @db.Decimal(11, 8)
-  qr_token           String        @db.VarChar(500)
-  status             CheckInStatus
-}
+model Checkin {
+  id               String       @id @default(uuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id])
+  gymId            String
+  gym              Gym          @relation(fields: [gymId], references: [id])
+  checkedInAt      DateTime     @default(now())
+  creditsUsed      Int
+  gymPayoutAmount  Decimal      @db.Decimal(10, 2)
+  userLat          Decimal      @db.Decimal(10, 8)
+  userLng          Decimal      @db.Decimal(11, 8)
+  qrToken          String
+  status           CheckinStatus @default(SUCCESS)
 
-model Corporate {
-  id         String   @id @default(uuid())
-  name       String
-  domain     String   @unique
-  employees  User[]
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  @@index([userId, gymId, checkedInAt])
+  @@index([gymId, checkedInAt])
 }
 
 model CreditTransaction {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  amount        Int      // positive = credit, negative = debit
+  type          TxnType  // SUBSCRIPTION | TOPUP | CHECKIN | ROLLOVER | REFERRAL
+  referenceId   String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Subscription {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id])
+  planType                PlanType
+  creditsPerMonth         Int
+  price                   Decimal  @db.Decimal(10, 2)
+  razorpaySubscriptionId  String?  @unique
+  startDate               DateTime
+  endDate                 DateTime?
+  status                  SubStatus @default(ACTIVE)
+}
+
+model Payout {
+  id                  String   @id @default(uuid())
+  gymId               String
+  gym                 Gym      @relation(fields: [gymId], references: [id])
+  periodStart         DateTime
+  periodEnd           DateTime
+  totalCheckins       Int
+  totalCreditsUsed    Int
+  amountOwed          Decimal  @db.Decimal(10, 2)
+  amountPaid          Decimal  @default(0) @db.Decimal(10, 2)
+  status              PayoutStatus @default(PENDING)
+  paidAt              DateTime?
+
+  @@index([gymId, status])
+}
+
+model Corporate {
+  id              String   @id @default(uuid())
+  companyName     String
+  hrName          String
+  hrEmail         String   @unique
+  employeeCount   Int
+  monthlyFee      Decimal  @db.Decimal(10, 2)
+  status          CorpStatus @default(PENDING)
+  startDate       DateTime?
+  employees       User[]
+}
+
+model FraudLog {
   id          String   @id @default(uuid())
-  user_id     String
-  user        User     @relation(fields: [user_id], references: [id])
-  amount      Int
-  type        String   // 'signup_bonus', 'topup', 'monthly_reset', 'visit_deduction', 'refund'
-  description String?
-  created_at  DateTime @default(now())
+  userId      String?
+  gymId       String?
+  reason      String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum Role { 
+  USER 
+  GYM_OWNER 
+  CORPORATE_ADMIN 
+  SUPER_ADMIN 
+}
+
+enum PlanType { 
+  NONE 
+  BASIC 
+  STANDARD 
+  PREMIUM 
+  CORPORATE 
+}
+
+enum TxnType { 
+  SUBSCRIPTION 
+  TOPUP 
+  CHECKIN 
+  ROLLOVER 
+  REFERRAL 
+}
+
+enum SubStatus { 
+  ACTIVE 
+  CANCELLED 
+  EXPIRED 
+  HALTED 
+}
+
+enum PayoutStatus { 
+  PENDING 
+  PROCESSING 
+  PAID 
+  FAILED 
+}
+
+enum CorpStatus { 
+  PENDING 
+  ACTIVE 
+  CANCELLED 
+}
+
+enum CheckinStatus { 
+  SUCCESS 
+  FAILED 
+  FRAUD 
 }

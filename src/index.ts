@@ -4,14 +4,15 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import morgan from "morgan";
+import { logger } from "./config/logger";
+import { errorHandler } from "./middleware/errorHandler.middleware";
 
 // Routes
-import authRoutes from "./routes/auth.routes";
-import gymRoutes from "./routes/gym.routes";
-import checkinRoutes from "./routes/checkin.routes";
-import creditsRoutes from "./routes/credits.routes";
-import adminRoutes from "./routes/admin.routes";
+import authRoutes from "./modules/auth/auth.routes";
+import gymRoutes from "./modules/gyms/gym.routes";
+import checkinRoutes from "./modules/checkin/checkin.routes";
+import creditsRoutes from "./modules/credits/credits.routes";
+import adminRoutes from "./modules/admin/admin.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,13 +20,18 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: "*", // Adjust origins based on requirements
+  origin: process.env.FRONTEND_URL || "*",
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// HTTP Request Logging
+app.use((req, res, next) => {
+  logger.info({ method: req.method, url: req.url }, "Incoming request");
+  next();
+});
 
 // Health Check
 app.get("/health", (req, res) => {
@@ -47,15 +53,21 @@ app.use("/api/v1/admin", adminRoutes);
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: "API Route not found"
+    error: {
+      code: "NOT_FOUND",
+      message: "API Route not found"
+    }
   });
 });
 
+// Global Error Handler
+app.use(errorHandler);
+
 // Start Server
 app.listen(PORT, () => {
-  console.log(`=========================================`);
-  console.log(`🚀 FlexPass Backend Server Running!`);
-  console.log(`📡 Port: ${PORT}`);
-  console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
-  console.log(`=========================================`);
+  logger.info(`=========================================`);
+  logger.info(`🚀 FlexPass Backend Server Running!`);
+  logger.info(`📡 Port: ${PORT}`);
+  logger.info(`🔗 Health Check: http://localhost:${PORT}/health`);
+  logger.info(`=========================================`);
 });

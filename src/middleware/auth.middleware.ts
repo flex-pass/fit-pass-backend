@@ -1,107 +1,38 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyToken } from "../utils/auth";
-import { prisma } from "../lib/prisma";
-import { blacklistService } from "../services/blacklist.service";
+import jwt from "jsonwebtoken";
+import { prisma } from "../config/database";
 
 export interface AuthenticatedRequest extends Request {
-  token?: string; // Add token field to req
   user?: {
     id: string;
-    email: string;
     role: string;
   };
 }
 
-export const authenticate = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const authMiddleware = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res.status(401).json({
-        success: false,
-        message: "No token provided, authorization denied",
-      });
+      res.status(401).json({ success: false, error: { code: "UNAUTHORIZED", message: "Missing or invalid token" } });
       return;
     }
 
     const token = authHeader.split(" ")[1];
-    if (!token) {
-      res.status(401).json({
-        success: false,
-        message: "Malformed token, authorization denied",
-      });
-      return;
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "super-secret") as { id: string; role: string };
 
-    // Check token blacklist
-    if (blacklistService.isTokenBlacklisted(token)) {
-      res.status(401).json({
-        success: false,
-        message: "Token is invalidated. Please log in again.",
-      });
-      return;
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      res.status(401).json({
-        success: false,
-        message: "Token is invalid or expired",
-      });
-      return;
-    }
-
-    // Double check active status in database
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: { is_active: true },
-    });
-
-    if (!user || !user.is_active) {
-      res.status(401).json({
-        success: false,
-        message: "User account is suspended or deactivated",
-      });
-      return;
-    }
-
-    req.token = token;
-    req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-    };
-
+    req.user = decoded;
     next();
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server authentication error",
-    });
+    res.status(401).json({ success: false, error: { code: "UNAUTHORIZED", message: "Invalid or expired token" } });
   }
 };
 
-export const authorize = (allowedRoles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
+export const requireRole = (roles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      res.status(403).json({ success: false, error: { code: "FORBIDDEN", message: "Insufficient permissions" } });
       return;
     }
-
-    if (!allowedRoles.includes(req.user.role)) {
-      res.status(403).json({
-        success: false,
-        message: `Role ${req.user.role} is not authorized to access this resource`,
-      });
-      return;
-    }
-
     next();
   };
 };

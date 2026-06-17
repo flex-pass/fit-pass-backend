@@ -13,7 +13,7 @@ async function main() {
 
   // Clean existing data
   await prisma.creditTransaction.deleteMany();
-  await prisma.checkIn.deleteMany();
+  await prisma.checkin.deleteMany();
   await prisma.gym.deleteMany();
   await prisma.user.deleteMany();
   await prisma.corporate.deleteMany();
@@ -23,8 +23,11 @@ async function main() {
   // 1. Create Corporate
   const corp = await prisma.corporate.create({
     data: {
-      name: "Google India",
-      domain: "google.com",
+      companyName: "TechCorp India",
+      hrName: "Tech HR",
+      hrEmail: "hr@google.com",
+      employeeCount: 500,
+      monthlyFee: 50000.00,
     },
   });
   console.log("✅ Corporate created");
@@ -35,7 +38,7 @@ async function main() {
       name: "Super Admin",
       email: "superadmin@gmail.com",
       password: hashedPassword,
-      role: "SUPERADMIN",
+      role: "SUPER_ADMIN",
       city: "Noida",
     },
   });
@@ -45,7 +48,7 @@ async function main() {
       name: "Admin User",
       email: "admin@gmail.com",
       password: hashedPassword,
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
       city: "Noida",
     },
   });
@@ -55,7 +58,7 @@ async function main() {
       name: "Gym Owner",
       email: "owner@gmail.com",
       password: hashedPassword,
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
       city: "Noida",
     },
   });
@@ -67,9 +70,9 @@ async function main() {
       password: hashedPassword,
       role: "USER",
       city: "Noida",
-      credits_balance: 100, // Starts with 100 credits for testing
-      plan_type: "PREMIUM",
-      plan_expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days expiry
+      creditsBalance: 5000, // Starts with 100 credits for testing
+      planType: "PREMIUM",
+      planExpiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days expiry
     },
   });
 
@@ -80,10 +83,10 @@ async function main() {
       password: hashedPassword,
       role: "USER",
       city: "Noida",
-      credits_balance: 30,
-      plan_type: "CORPORATE_BASIC",
-      plan_expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      corporate_id: corp.id,
+      creditsBalance: 30,
+      planType: "CORPORATE",
+      planExpiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      corporateId: corp.id,
     },
   });
 
@@ -99,20 +102,20 @@ async function main() {
   const gym1 = await prisma.gym.create({
     data: {
       name: "Gold's Gym - Sector 62",
-      owner_user_id: owner.id,
+      ownerId: owner.id,
       address: "B-23, Sector 62, Noida, Uttar Pradesh 201301",
       latitude: 28.62500000,
       longitude: 77.37300000,
       tier: 1, // Premium
-      peak_credit_cost: 10,
-      offpeak_credit_cost: 8,
-      peak_start_morning: "06:00",
-      peak_end_morning: "09:00",
-      peak_start_evening: "18:00",
-      peak_end_evening: "21:00",
-      payout_per_credit: 40.00,
-      is_approved: true,
-      kill_switch: false,
+      peakCreditCost: 10,
+      offpeakCreditCost: 8,
+      peakStartMorning: "06:00",
+      peakEndMorning: "09:00",
+      peakStartEvening: "18:00",
+      peakEndEvening: "21:00",
+      payoutPerCredit: 40.00,
+      isApproved: true,
+      killSwitch: false,
     },
   });
 
@@ -120,20 +123,20 @@ async function main() {
   const gym2 = await prisma.gym.create({
     data: {
       name: "Cult Fit - Sector 18",
-      owner_user_id: owner.id,
+      ownerId: owner.id,
       address: "Wave Silver Tower, Sector 18, Noida, Uttar Pradesh 201301",
       latitude: 28.57000000,
       longitude: 77.32500000,
       tier: 2, // Mid
-      peak_credit_cost: 6,
-      offpeak_credit_cost: 4,
-      peak_start_morning: "06:00",
-      peak_end_morning: "09:00",
-      peak_start_evening: "18:00",
-      peak_end_evening: "21:00",
-      payout_per_credit: 30.00,
-      is_approved: true,
-      kill_switch: false,
+      peakCreditCost: 6,
+      offpeakCreditCost: 4,
+      peakStartMorning: "06:00",
+      peakEndMorning: "09:00",
+      peakStartEvening: "18:00",
+      peakEndEvening: "21:00",
+      payoutPerCredit: 30.00,
+      isApproved: true,
+      killSwitch: false,
     },
   });
 
@@ -141,20 +144,20 @@ async function main() {
   const gym3 = await prisma.gym.create({
     data: {
       name: "Fit & Fine Gym - Sector 12",
-      owner_user_id: owner.id,
+      ownerId: owner.id,
       address: "Z-12, Sector 12, Noida, Uttar Pradesh 201301",
       latitude: 28.59000000,
       longitude: 77.34000000,
       tier: 3, // Budget
-      peak_credit_cost: 4,
-      offpeak_credit_cost: 2,
-      peak_start_morning: "06:00",
-      peak_end_morning: "09:00",
-      peak_start_evening: "18:00",
-      peak_end_evening: "21:00",
-      payout_per_credit: 20.00,
-      is_approved: true,
-      kill_switch: false,
+      peakCreditCost: 4,
+      offpeakCreditCost: 2,
+      peakStartMorning: "06:00",
+      peakEndMorning: "09:00",
+      peakStartEvening: "18:00",
+      peakEndEvening: "21:00",
+      payoutPerCredit: 20.00,
+      isApproved: true,
+      killSwitch: false,
     },
   });
 
