@@ -64,18 +64,25 @@ export const getFraudLogs = async (req: Request, res: Response): Promise<void> =
 
 export const getAnalyticsOverview = async (req: Request, res: Response): Promise<void> => {
   try {
-    const [totalUsers, totalGyms, totalCheckins] = await Promise.all([
-      prisma.user.count(),
-      prisma.gym.count(),
-      prisma.checkin.count()
+    const [totalUsers, totalAdmins, pendingOnboardings, topups] = await Promise.all([
+      prisma.user.count({ where: { role: "USER" } }),
+      prisma.user.count({ where: { role: "GYM_OWNER" } }),
+      prisma.gym.count({ where: { isApproved: false } }),
+      prisma.creditTransaction.aggregate({
+        _sum: { amount: true },
+        where: { type: "TOPUP" } // Sum all positive topup transactions
+      })
     ]);
+
+    const totalRechargeAmount = topups._sum.amount || 0;
 
     res.status(200).json({
       success: true,
       data: {
         totalUsers,
-        totalGyms,
-        totalCheckins
+        totalAdmins,
+        pendingOnboardings,
+        totalRechargeAmount
       }
     });
   } catch (error: any) {
@@ -91,6 +98,47 @@ export const markPayoutPaid = async (req: Request, res: Response): Promise<void>
       data: { status: "PAID", paidAt: new Date() }
     });
     res.status(200).json({ success: true, data: payout });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getUsers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: "USER" },
+      select: { id: true, name: true, email: true, phoneNumber: true, city: true, creditsBalance: true, planType: true, isActive: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.status(200).json({ success: true, data: users });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getAdmins = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: "GYM_OWNER" },
+      select: { id: true, name: true, email: true, phoneNumber: true, city: true, isActive: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.status(200).json({ success: true, data: admins });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getTransactions = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const transactions = await prisma.creditTransaction.findMany({
+      include: {
+        user: { select: { name: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+    res.status(200).json({ success: true, data: transactions });
   } catch (error: any) {
     res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
   }
