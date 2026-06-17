@@ -28,6 +28,8 @@ model User {
   transactions    CreditTransaction[]
   subscription    Subscription?
   ownedGyms       Gym[]    @relation("GymOwner")
+  tickets         SupportTicket[]
+  notifications   Notification[]
 
   @@index([phoneNumber])
   @@index([corporateId])
@@ -140,6 +142,46 @@ model FraudLog {
   createdAt   DateTime @default(now())
 
   @@index([userId])
+}
+
+model SubscriptionPlan {
+  id              String   @id @default(uuid())
+  name            String
+  price           Decimal  @db.Decimal(10, 2)
+  credits         Int
+  costPerCredit   Decimal  @db.Decimal(10, 2)
+  rollover        Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model SupportTicket {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  subject     String
+  message     String
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, CLOSED
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Refund {
+  id            String   @id @default(uuid())
+  transactionId String
+  amount        Decimal  @db.Decimal(10, 2)
+  reason        String
+  status        String   @default("PENDING") // PENDING, PROCESSED, REJECTED
+  createdAt     DateTime @default(now())
 }
 
 enum Role { 

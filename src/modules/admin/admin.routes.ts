@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getPendingGyms, approveGym, adjustCredits, getFraudLogs, getAnalyticsOverview, markPayoutPaid, getUsers, getAdmins, getTransactions } from "./admin.controller";
+import { getPendingGyms, approveGym, adjustCredits, getFraudLogs, getAnalyticsOverview, markPayoutPaid, getUsers, getAdmins, getTransactions, getAllGyms, getAllCheckins, getAllPayouts, getAllPlans, getAllTickets, getAllNotifications, getAllRefunds } from "./admin.controller";
 import { authMiddleware, requireRole } from "../../middleware/auth.middleware";
 
 const router = Router();
@@ -17,5 +17,12 @@ router.patch("/payouts/:id/mark-paid", requireRole(["SUPER_ADMIN"]), markPayoutP
 router.get("/users", requireRole(["SUPER_ADMIN"]), getUsers);
 router.get("/admins", requireRole(["SUPER_ADMIN"]), getAdmins);
 router.get("/transactions", requireRole(["SUPER_ADMIN"]), getTransactions);
+router.get("/gyms/all", requireRole(["SUPER_ADMIN", "ADMIN"]), getAllGyms);
+router.get("/checkins/all", requireRole(["SUPER_ADMIN", "ADMIN"]), getAllCheckins);
+router.get("/payouts/all", requireRole(["SUPER_ADMIN"]), getAllPayouts);
+router.get("/plans/all", requireRole(["SUPER_ADMIN"]), getAllPlans);
+router.get("/tickets/all", requireRole(["SUPER_ADMIN", "ADMIN"]), getAllTickets);
+router.get("/notifications/all", requireRole(["SUPER_ADMIN"]), getAllNotifications);
+router.get("/refunds/all", requireRole(["SUPER_ADMIN"]), getAllRefunds);
 
 export default router;

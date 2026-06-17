@@ -143,3 +143,90 @@ export const getTransactions = async (req: Request, res: Response): Promise<void
     res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
   }
 };
+
+export const getAllGyms = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const gyms = await prisma.gym.findMany({
+      include: { owner: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.status(200).json({ success: true, data: gyms });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getAllCheckins = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const checkins = await prisma.checkin.findMany({
+      include: { 
+        user: { select: { name: true, email: true } },
+        gym: { select: { name: true } }
+      },
+      orderBy: { checkedInAt: 'desc' },
+      take: 200
+    });
+    res.status(200).json({ success: true, data: checkins });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getAllPayouts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const payouts = await prisma.payout.findMany({
+      include: { gym: { select: { name: true } } },
+      orderBy: { periodStart: 'desc' }
+    });
+    res.status(200).json({ success: true, data: payouts });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getAllPlans = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const plans = await prisma.subscriptionPlan.findMany({
+      orderBy: { price: 'asc' }
+    });
+    res.status(200).json({ success: true, data: plans });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getAllTickets = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tickets = await prisma.supportTicket.findMany({
+      include: { user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.status(200).json({ success: true, data: tickets });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getAllNotifications = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const notifications = await prisma.notification.findMany({
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+    res.status(200).json({ success: true, data: notifications });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
+
+export const getAllRefunds = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const refunds = await prisma.refund.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.status(200).json({ success: true, data: refunds });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message } });
+  }
+};
