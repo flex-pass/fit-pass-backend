@@ -101,7 +101,7 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
     const order = await razorpay.orders.create({
       amount,
       currency,
-      receipt: receipt || `receipt_${req.user!.id}_${Date.now()}`,
+      receipt: receipt || `rcpt_${req.user!.id.substring(0, 8)}_${Date.now()}`,
       notes: {
         userId: req.user!.id,
         type: "TOPUP"
@@ -110,10 +110,12 @@ export const createOrder = async (req: AuthenticatedRequest, res: Response): Pro
 
     res.status(200).json({ success: true, data: { order_id: order.id, amount: order.amount, currency: order.currency } });
   } catch (error: any) {
+    console.error("Razorpay Create Order Error:", error);
     if (error.statusCode === 401) {
       res.status(401).json({ success: false, error: { code: "UNAUTHORIZED", message: "Razorpay Auth Failed" } });
     } else {
-      res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: error.message || "Failed to create order" } });
+      const errorMsg = error.error?.description || error.message || "Failed to create order";
+      res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: errorMsg } });
     }
   }
 };
@@ -145,7 +147,11 @@ export const verifyPayment = async (req: AuthenticatedRequest, res: Response): P
     }
 
     if (amount) {
-      const creditsToAdd = Math.floor(amount / 100);
+      let creditsToAdd = 0;
+      if (amount === 50000) creditsToAdd = 10;
+      else if (amount === 112500) creditsToAdd = 25;
+      else if (amount === 200000) creditsToAdd = 50;
+      else creditsToAdd = Math.floor(amount / 100);
 
       // Check if this payment was already processed (e.g. via webhook first)
       const existingTxn = await prisma.creditTransaction.findFirst({
@@ -211,7 +217,11 @@ export const razorpayWebhook = async (req: Request, res: Response): Promise<void
       const referenceId = paymentEntity?.id;
 
       if (userId && amountPaise && referenceId) {
-        const creditsToAdd = Math.floor(amountPaise / 100);
+        let creditsToAdd = 0;
+        if (amountPaise === 50000) creditsToAdd = 10;
+        else if (amountPaise === 112500) creditsToAdd = 25;
+        else if (amountPaise === 200000) creditsToAdd = 50;
+        else creditsToAdd = Math.floor(amountPaise / 100);
 
         const existingTxn = await prisma.creditTransaction.findFirst({
           where: { referenceId }
